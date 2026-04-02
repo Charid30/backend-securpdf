@@ -2,7 +2,7 @@ services:
   - type: web
     name: securpdfbf-api
     runtime: node
-    buildCommand: sudo apt-get install -y qpdf && npm install
+    buildCommand: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y qpdf && npm install
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
