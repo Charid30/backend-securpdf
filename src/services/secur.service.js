@@ -21,7 +21,6 @@ async function appliquerRestrictions(options) {
   const restrictions = {};
   if (interdireCopie) {
     restrictions.extract = 'n';
-    restrictions['copy-low-resolution'] = 'n';
   }
   if (interdireImpression)   restrictions.print = 'none';
   if (interdireModification) restrictions.modify = 'none';
