@@ -7,9 +7,10 @@ const errorHandler = (err, req, res, next) => {
   if (req.file?.path) {
     try { fs.unlinkSync(req.file.path); } catch (_) {}
   }
-  console.error('[SecurPDFBF Error]', err.message);
-  const status = err.status || 500;
-  res.status(status).json({ erreur: err.message || 'Erreur interne du serveur.' });
+  const message = err?.message || (typeof err === 'string' ? err : JSON.stringify(err));
+  console.error('[SecurPDFBF Error]', message, err);
+  const status = err?.status || 500;
+  res.status(status).json({ erreur: message || 'Erreur interne du serveur.' });
 };
 
 module.exports = { errorHandler };

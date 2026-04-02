@@ -37,7 +37,13 @@ async function appliquerRestrictions(options) {
     optionsQpdf.userPassword = motDePasseOuverture;
   }
 
-  await qpdf.encrypt(optionsQpdf);
+  try {
+    await qpdf.encrypt(optionsQpdf);
+  } catch (e) {
+    console.error('[qpdf raw error]', e);
+    const msg = e?.message || e?.stderr || (typeof e === 'string' ? e : JSON.stringify(e));
+    throw new Error(`qpdf échec: ${msg}`);
+  }
 }
 
 function genererMotDePasseAleatoire() {
