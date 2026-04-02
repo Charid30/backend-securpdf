@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: securpdfbf-api
+    runtime: node
+    buildCommand: apt-get install -y qpdf && npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false
+      - key: MAX_FILE_SIZE_MB
+        value: 20
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 60000
+      - key: RATE_LIMIT_MAX
+        value: 20
