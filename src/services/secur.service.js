@@ -34,10 +34,8 @@ async function appliquerRestrictions(options) {
     restrictions,
   };
 
-  // Ajout du mot de passe d'ouverture si fourni
-  if (motDePasseOuverture) {
-    optionsQpdf.userPassword = motDePasseOuverture;
-  }
+  // Mot de passe d'ouverture (vide = pas de mot de passe requis pour ouvrir)
+  optionsQpdf.userPassword = motDePasseOuverture || '';
 
   try {
     await qpdf.encrypt(optionsQpdf);
