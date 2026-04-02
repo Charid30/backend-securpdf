@@ -17,12 +17,15 @@ async function appliquerRestrictions(options) {
   // Mot de passe propriétaire aléatoire (toujours défini pour appliquer les restrictions)
   const motDePasseProprietaire = genererMotDePasseAleatoire();
 
-  // Construction des restrictions qpdf
-  const restrictions = [];
-  if (interdireCopie)        restrictions.push('modify-other=n', 'extract=n', 'copy-low-resolution=n');
-  if (interdireImpression)   restrictions.push('print=none');
-  if (interdireModification) restrictions.push('modify=none');
-  if (interdireAnnotations)  restrictions.push('annotate=n');
+  // Construction des restrictions qpdf (objet requis par node-qpdf2)
+  const restrictions = {};
+  if (interdireCopie) {
+    restrictions.extract = 'n';
+    restrictions['copy-low-resolution'] = 'n';
+  }
+  if (interdireImpression)   restrictions.print = 'none';
+  if (interdireModification) restrictions.modify = 'none';
+  if (interdireAnnotations)  restrictions.annotate = 'n';
 
   const optionsQpdf = {
     input: cheminEntree,
