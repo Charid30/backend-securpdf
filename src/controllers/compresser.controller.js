@@ -7,6 +7,9 @@ const { v4: uuidv4 } = require('uuid');
 const { spawn } = require('child_process');
 const { supprimerFichier } = require('../utils/fichier.utils');
 
+// Sur Windows : gswin64c ; sur Linux/Mac : gs
+const GS_CMD = process.platform === 'win32' ? 'gswin64c' : 'gs';
+
 const compresserPDF = async (req, res, next) => {
   const fichier = req.file;
   const cheminSortie = path.join(os.tmpdir(), `compressed-${uuidv4()}.pdf`);
@@ -20,7 +23,7 @@ const compresserPDF = async (req, res, next) => {
 
     const tailleOriginale = fichier.size;
 
-    await executerQpdfCompression(fichier.path, cheminSortie);
+    await executerGhostscriptCompression(fichier.path, cheminSortie);
     supprimerFichier(fichier.path);
 
     const tailleCompresse = fs.statSync(cheminSortie).size;
@@ -42,25 +45,29 @@ const compresserPDF = async (req, res, next) => {
   }
 };
 
-function executerQpdfCompression(entree, sortie) {
+function executerGhostscriptCompression(entree, sortie) {
   return new Promise((resolve, reject) => {
+    // /ebook = 150 dpi images — bon équilibre taille/qualité
+    // alternatives: /screen (72 dpi, très petit), /printer (300 dpi, moins de gain)
     const args = [
-      '--object-streams=generate',
-      '--compress-streams=y',
-      '--recompress-flate',
+      '-sDEVICE=pdfwrite',
+      '-dCompatibilityLevel=1.4',
+      '-dPDFSETTINGS=/ebook',
+      '-dNOPAUSE',
+      '-dQUIET',
+      '-dBATCH',
+      `-sOutputFile=${sortie}`,
       entree,
-      sortie,
     ];
 
-    const proc = spawn('qpdf', args);
+    const proc = spawn(GS_CMD, args);
     let stderr = '';
     proc.stderr.on('data', (d) => { stderr += d.toString(); });
     proc.on('close', (code) => {
-      // code 3 = warnings but success
-      if (code === 0 || code === 3) resolve();
-      else reject(new Error(`Erreur de compression PDF (code ${code}): ${stderr}`));
+      if (code === 0) resolve();
+      else reject(new Error(`Erreur Ghostscript (code ${code}): ${stderr}`));
     });
-    proc.on('error', (err) => reject(new Error(`Impossible de lancer qpdf: ${err.message}`)));
+    proc.on('error', (err) => reject(new Error(`Impossible de lancer Ghostscript: ${err.message}`)));
   });
 }
 
