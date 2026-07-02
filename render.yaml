@@ -9,9 +9,9 @@ services:
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
-        sync: false          # à remplir dans le dashboard Render avec l'URL Vercel
+        sync: false
       - key: BACKEND_URL
-        sync: false          # ex: https://securpdfbf-api.onrender.com
+        sync: false
       - key: MAX_FILE_SIZE_MB
         value: 20
       - key: RATE_LIMIT_WINDOW_MS
@@ -19,6 +19,6 @@ services:
       - key: RATE_LIMIT_MAX
         value: 20
       - key: GMAIL_USER
-        sync: false          # votre.email@gmail.com
+        sync: false 
       - key: GMAIL_APP_PASSWORD
-        sync: false          # mot de passe d'application Gmail (16 caractères)
+        sync: false
