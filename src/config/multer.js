@@ -15,18 +15,23 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'application/pdf') {
-    cb(null, true);
-  } else {
-    cb(new Error('Seuls les fichiers PDF sont acceptés.'));
-  }
+const filtrerPDF = (req, file, cb) => {
+  if (file.mimetype === 'application/pdf') cb(null, true);
+  else cb(new Error('Seuls les fichiers PDF sont acceptés.'));
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: MAX_SIZE },
-});
+const filtrerWord = (req, file, cb) => {
+  const typesAutorises = [
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/msword',
+  ];
+  if (typesAutorises.includes(file.mimetype)) cb(null, true);
+  else cb(new Error('Seuls les fichiers Word (.doc, .docx) sont acceptés.'));
+};
 
-module.exports = { upload };
+const upload    = multer({ storage, fileFilter: filtrerPDF,  limits: { fileSize: MAX_SIZE } });
+const uploadPDF = multer({ storage, fileFilter: filtrerPDF,  limits: { fileSize: MAX_SIZE } });
+const uploadWord = multer({ storage, fileFilter: filtrerWord, limits: { fileSize: MAX_SIZE } });
+const uploadPDFs = multer({ storage, fileFilter: filtrerPDF,  limits: { fileSize: MAX_SIZE } });
+
+module.exports = { upload, uploadPDF, uploadWord, uploadPDFs };

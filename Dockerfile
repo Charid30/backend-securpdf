@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y qpdf --no-install-recommends && rm -rf 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+RUN npm ci --omit=dev
 
 COPY . .
 

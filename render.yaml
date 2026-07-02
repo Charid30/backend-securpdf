@@ -1,17 +1,24 @@
 services:
   - type: web
     name: securpdfbf-api
-    runtime: node
-    buildCommand: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y qpdf && npm install
-    startCommand: node server.js
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: FRONTEND_URL
-        sync: false
+        sync: false          # à remplir dans le dashboard Render avec l'URL Vercel
+      - key: BACKEND_URL
+        sync: false          # ex: https://securpdfbf-api.onrender.com
       - key: MAX_FILE_SIZE_MB
         value: 20
       - key: RATE_LIMIT_WINDOW_MS
         value: 60000
       - key: RATE_LIMIT_MAX
         value: 20
+      - key: GMAIL_USER
+        sync: false          # votre.email@gmail.com
+      - key: GMAIL_APP_PASSWORD
+        sync: false          # mot de passe d'application Gmail (16 caractères)
