@@ -22,17 +22,28 @@ const compresserPDF = async (req, res, next) => {
     }
 
     const tailleOriginale = fichier.size;
+    const nomOriginal = fichier.originalname.replace(/\.pdf$/i, '');
 
     await executerGhostscriptCompression(fichier.path, cheminSortie);
-    supprimerFichier(fichier.path);
 
     const tailleCompresse = fs.statSync(cheminSortie).size;
-    const nomOriginal = fichier.originalname.replace(/\.pdf$/i, '');
 
     res.setHeader('Access-Control-Expose-Headers', 'X-Taille-Originale, X-Taille-Compresse');
     res.setHeader('X-Taille-Originale', tailleOriginale);
     res.setHeader('X-Taille-Compresse', tailleCompresse);
 
+    // Si Ghostscript a gonflé le fichier, on renvoie l'original tel quel
+    if (tailleCompresse >= tailleOriginale) {
+      supprimerFichier(cheminSortie);
+      // On écrase le header pour que le frontend affiche la vraie taille
+      res.setHeader('X-Taille-Compresse', tailleOriginale);
+      return res.download(fichier.path, `${nomOriginal}-compresse.pdf`, (err) => {
+        supprimerFichier(fichier.path);
+        if (err && !res.headersSent) next(err);
+      });
+    }
+
+    supprimerFichier(fichier.path);
     res.download(cheminSortie, `${nomOriginal}-compresse.pdf`, (err) => {
       supprimerFichier(cheminSortie);
       if (err && !res.headersSent) next(err);
