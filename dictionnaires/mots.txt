@@ -1,0 +1,4 @@
+# Un mot de passe par ligne. Ce fichier est optionnel : s'il existe, son contenu
+# est ajouté au dictionnaire de base généré dans bruteforce.worker.js.
+# Les lignes vides et celles commençant par # sont ignorées et doivent être ignorées
+#Auteur: BATIONO Ulrich Rachid Kevin

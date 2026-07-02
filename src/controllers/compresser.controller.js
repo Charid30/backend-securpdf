@@ -4,11 +4,8 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const { spawn } = require('child_process');
+const { compresserAvecGhostscript } = require('../services/compresser.service');
 const { supprimerFichier } = require('../utils/fichier.utils');
-
-// Sur Windows : gswin64c ; sur Linux/Mac : gs
-const GS_CMD = process.platform === 'win32' ? 'gswin64c' : 'gs';
 
 const compresserPDF = async (req, res, next) => {
   const fichier = req.file;
@@ -24,7 +21,7 @@ const compresserPDF = async (req, res, next) => {
     const tailleOriginale = fichier.size;
     const nomOriginal = fichier.originalname.replace(/\.pdf$/i, '');
 
-    await executerGhostscriptCompression(fichier.path, cheminSortie);
+    await compresserAvecGhostscript(fichier.path, cheminSortie);
 
     const tailleCompresse = fs.statSync(cheminSortie).size;
 
@@ -55,31 +52,5 @@ const compresserPDF = async (req, res, next) => {
     next(err);
   }
 };
-
-function executerGhostscriptCompression(entree, sortie) {
-  return new Promise((resolve, reject) => {
-    // /ebook = 150 dpi images — bon équilibre taille/qualité
-    // alternatives: /screen (72 dpi, très petit), /printer (300 dpi, moins de gain)
-    const args = [
-      '-sDEVICE=pdfwrite',
-      '-dCompatibilityLevel=1.4',
-      '-dPDFSETTINGS=/ebook',
-      '-dNOPAUSE',
-      '-dQUIET',
-      '-dBATCH',
-      `-sOutputFile=${sortie}`,
-      entree,
-    ];
-
-    const proc = spawn(GS_CMD, args);
-    let stderr = '';
-    proc.stderr.on('data', (d) => { stderr += d.toString(); });
-    proc.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`Erreur Ghostscript (code ${code}): ${stderr}`));
-    });
-    proc.on('error', (err) => reject(new Error(`Impossible de lancer Ghostscript: ${err.message}`)));
-  });
-}
 
 module.exports = { compresserPDF };

@@ -49,6 +49,7 @@ const verifierStatut = (req, res, next) => {
     statut: job.statut,
     etape: job.etape,
     progression: job.progression,
+    tentatives: job.tentatives,
     motDePasse: job.statut === 'succes' ? job.motDePasse : undefined,
   });
 };
