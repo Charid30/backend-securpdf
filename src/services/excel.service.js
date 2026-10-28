@@ -66,7 +66,7 @@ const construireLignes = (morceaux) => {
         cellules.push({ texte: m.texte, x0: m.x0, x1: m.x1 });
       }
     }
-    return cellules.map((c) => ({ ...c, texte: c.texte.replace(/\s+/g, ' ').trim() }));
+    return { y: ligne.y, cellules: cellules.map((c) => ({ ...c, texte: c.texte.replace(/\s+/g, ' ').trim() })) };
   });
 };
 
@@ -77,8 +77,8 @@ const construireLignes = (morceaux) => {
  */
 const detecterColonnes = (lignes) => {
   const intervalles = lignes
-    .filter((cellules) => cellules.length >= 2)
-    .flat()
+    .filter(({ cellules }) => cellules.length >= 2)
+    .flatMap(({ cellules }) => cellules)
     .map((c) => [c.x0, c.x1])
     .sort((a, b) => a[0] - b[0]);
 
@@ -135,10 +135,71 @@ const convertirValeur = (texte) => {
   return pourcentage ? nombre / 100 : nombre;
 };
 
-const nomFeuille = (index) => `Page ${index}`;
+/**
+ * Place les cellules d'une page dans une grille : une ligne par ligne de texte,
+ * une colonne par colonne détectée. Deux textes tombés dans la même case sont concaténés.
+ */
+const construireGrillePage = (lignes) => {
+  const colonnes = detecterColonnes(lignes);
+  const grille = lignes.map(({ cellules }) => {
+    const ligne = [];
+    for (const cellule of cellules) {
+      const col = indexColonne(colonnes, cellule, cellules.length === 1);
+      ligne[col] = ligne[col] != null ? `${ligne[col]} ${cellule.texte}` : cellule.texte;
+    }
+    return ligne;
+  });
+  return {
+    ys: lignes.map((l) => l.y),
+    grille,
+    nbColonnes: Math.max(0, ...grille.map((l) => l.length)),
+  };
+};
+
+const TOLERANCE_Y = 2; // points
+
+const memesLignes = (a, b) =>
+  a.ys.length > 0 && a.ys.length === b.ys.length && a.ys.every((y, i) => Math.abs(y - b.ys[i]) <= TOLERANCE_Y);
+
+const memeContenu = (a = [], b = []) =>
+  a.length === b.length && a.every((v, i) => (v ?? '') === (b[i] ?? ''));
 
 /**
- * Convertit un PDF texte en classeur Excel : une feuille par page.
+ * Assemble toutes les pages dans une seule grille.
+ * - Une page aux mêmes lignes (mêmes ordonnées) que la précédente mais avec un autre nombre
+ *   de colonnes est la suite du tableau vers la droite (Excel coupe les tableaux trop larges
+ *   à l'impression) : ses colonnes sont ajoutées à droite.
+ * - Sinon la page est ajoutée en dessous ; une ligne d'en-tête répétée en haut de page est retirée.
+ */
+const assemblerPages = (pages) => {
+  const resultat = [];
+  let entete = null;
+  let precedente = null;
+  let bande = null; // { debut: ligne de départ, finColonnes: première colonne libre à droite }
+
+  for (const page of pages) {
+    if (!page.grille.length) continue;
+
+    if (precedente && bande && memesLignes(page, precedente) && page.nbColonnes !== precedente.nbColonnes) {
+      page.grille.forEach((ligne, i) => {
+        const cible = (resultat[bande.debut + i] ??= []);
+        ligne.forEach((valeur, col) => { cible[bande.finColonnes + col] = valeur; });
+      });
+      bande.finColonnes += page.nbColonnes;
+    } else {
+      let grille = page.grille;
+      if (entete && memeContenu(grille[0], entete)) grille = grille.slice(1);
+      entete ??= page.grille.find((l) => l.filter((v) => v != null).length >= 2) ?? null;
+      bande = { debut: resultat.length, finColonnes: page.nbColonnes };
+      resultat.push(...grille.map((l) => [...l]));
+    }
+    precedente = page;
+  }
+  return resultat;
+};
+
+/**
+ * Convertit un PDF texte en classeur Excel d'une seule feuille, toutes pages assemblées.
  * Retourne le buffer .xlsx.
  */
 const convertirPDFEnExcel = async (cheminFichier) => {
@@ -167,41 +228,40 @@ const convertirPDFEnExcel = async (cheminFichier) => {
     throw creerErreur(`Ce PDF contient ${pdf.numPages} pages. La conversion est limitée à ${MAX_PAGES} pages.`);
   }
 
-  const classeur = new ExcelJS.Workbook();
-  classeur.creator = 'SecurPDFBF';
-  let totalCellules = 0;
-
+  const pages = [];
   try {
     for (let numero = 1; numero <= pdf.numPages; numero++) {
       const page = await pdf.getPage(numero);
-      const lignes = construireLignes(await extraireMorceaux(page));
+      pages.push(construireGrillePage(construireLignes(await extraireMorceaux(page))));
       page.cleanup();
-
-      const feuille = classeur.addWorksheet(nomFeuille(numero));
-      const colonnes = detecterColonnes(lignes);
-      const largeurs = [];
-
-      lignes.forEach((cellules, i) => {
-        const ligneExcel = feuille.getRow(i + 1);
-        for (const cellule of cellules) {
-          const col = indexColonne(colonnes, cellule, cellules.length === 1) + 1;
-          const existante = ligneExcel.getCell(col);
-          // Deux cellules tombées dans la même colonne : on les concatène plutôt que d'en perdre une
-          const valeur = existante.value != null ? `${existante.value} ${cellule.texte}` : convertirValeur(cellule.texte);
-          existante.value = valeur;
-          if (typeof valeur === 'number' && cellule.texte.trim().endsWith('%')) existante.numFmt = '0.##%';
-          largeurs[col] = Math.max(largeurs[col] || 0, String(cellule.texte).length);
-          totalCellules++;
-        }
-      });
-
-      largeurs.forEach((largeur, col) => {
-        if (largeur) feuille.getColumn(col).width = Math.min(Math.max(largeur + 2, 8), 60);
-      });
     }
   } finally {
     await chargement.destroy();
   }
+
+  const grille = assemblerPages(pages);
+
+  const classeur = new ExcelJS.Workbook();
+  classeur.creator = 'SecurPDFBF';
+  const feuille = classeur.addWorksheet('Données');
+  const largeurs = [];
+  let totalCellules = 0;
+
+  grille.forEach((ligne, i) => {
+    const ligneExcel = feuille.getRow(i + 1);
+    ligne.forEach((texte, col) => {
+      if (texte == null) return;
+      const cellule = ligneExcel.getCell(col + 1);
+      cellule.value = convertirValeur(texte);
+      if (typeof cellule.value === 'number' && texte.trim().endsWith('%')) cellule.numFmt = '0.##%';
+      largeurs[col + 1] = Math.max(largeurs[col + 1] || 0, texte.length);
+      totalCellules++;
+    });
+  });
+
+  largeurs.forEach((largeur, col) => {
+    if (largeur) feuille.getColumn(col).width = Math.min(Math.max(largeur + 2, 8), 60);
+  });
 
   if (totalCellules === 0) {
     throw creerErreur(
