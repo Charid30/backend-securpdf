@@ -12,6 +12,7 @@
     "adm-zip": "^0.5.18",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
@@ -19,6 +20,7 @@
     "node-qpdf2": "^6.0.0",
     "nodemailer": "^9.0.3",
     "officecrypto-tool": "^0.0.19",
+    "pdfjs-dist": "^6.4.299",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

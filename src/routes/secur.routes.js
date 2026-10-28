@@ -7,6 +7,7 @@ const { securiserPDF } = require('../controllers/secur.controller');
 const { compresserPDF } = require('../controllers/compresser.controller');
 const { deverrouillerPDF, deverrouillerWord } = require('../controllers/deverrouiller.controller');
 const { fusionnerPDFs } = require('../controllers/fusionner.controller');
+const { convertirEnExcel } = require('../controllers/excel.controller');
 const { soumettreJob, verifierStatut, telechargerResultat } = require('../controllers/bruteforce.controller');
 
 const router = Router();
@@ -16,6 +17,7 @@ router.post('/compresser',         uploadPDF.single('fichier'),                 
 router.post('/deverrouiller-pdf',  uploadPDF.single('fichier'),                     deverrouillerPDF);
 router.post('/deverrouiller-word', uploadWord.single('fichier'),                    deverrouillerWord);
 router.post('/fusionner',          uploadPDFs.array('fichiers', 10),                fusionnerPDFs);
+router.post('/pdf-vers-excel',     uploadPDF.single('fichier'),                     convertirEnExcel);
 router.post('/bruteforce-word',    uploadWord.single('fichier'),                    soumettreJob);
 router.get('/bruteforce-word/:jobId',          verifierStatut);
 router.get('/bruteforce-word/:jobId/download', telechargerResultat);
