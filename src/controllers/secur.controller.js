@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const { appliquerRestrictions } = require('../services/secur.service');
-const { supprimerFichier } = require('../utils/fichier.utils');
+const { supprimerFichier, envoyerFichier } = require('../utils/fichier.utils');
 
 const securiserPDF = async (req, res, next) => {
   const fichier = req.file;
@@ -35,10 +35,7 @@ const securiserPDF = async (req, res, next) => {
     // Suppression immédiate du fichier source
     supprimerFichier(fichier.path);
 
-    const nomOriginal = fichier.originalname.replace(/\.pdf$/i, '');
-    const nomFichierSortie = `${nomOriginal}-securise.pdf`;
-
-    res.download(options.cheminSortie, nomFichierSortie, (err) => {
+    envoyerFichier(res, options.cheminSortie, (err) => {
       supprimerFichier(options.cheminSortie);
       if (err && !res.headersSent) next(err);
     });

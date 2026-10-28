@@ -5,7 +5,7 @@ const os = require('os');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { compresserAvecGhostscript } = require('../services/compresser.service');
-const { supprimerFichier } = require('../utils/fichier.utils');
+const { supprimerFichier, envoyerFichier } = require('../utils/fichier.utils');
 
 const compresserPDF = async (req, res, next) => {
   const fichier = req.file;
@@ -19,7 +19,6 @@ const compresserPDF = async (req, res, next) => {
     }
 
     const tailleOriginale = fichier.size;
-    const nomOriginal = fichier.originalname.replace(/\.pdf$/i, '');
 
     await compresserAvecGhostscript(fichier.path, cheminSortie);
 
@@ -34,14 +33,14 @@ const compresserPDF = async (req, res, next) => {
       supprimerFichier(cheminSortie);
       // On écrase le header pour que le frontend affiche la vraie taille
       res.setHeader('X-Taille-Compresse', tailleOriginale);
-      return res.download(fichier.path, `${nomOriginal}-compresse.pdf`, (err) => {
+      return envoyerFichier(res, fichier.path, (err) => {
         supprimerFichier(fichier.path);
         if (err && !res.headersSent) next(err);
       });
     }
 
     supprimerFichier(fichier.path);
-    res.download(cheminSortie, `${nomOriginal}-compresse.pdf`, (err) => {
+    envoyerFichier(res, cheminSortie, (err) => {
       supprimerFichier(cheminSortie);
       if (err && !res.headersSent) next(err);
     });

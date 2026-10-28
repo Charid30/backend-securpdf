@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { v4: uuidv4 } = require('uuid');
 const { decrypterPDFAvecQpdf, deverrouillerWordFichier } = require('../services/deverrouiller.service');
-const { supprimerFichier } = require('../utils/fichier.utils');
+const { supprimerFichier, envoyerFichier } = require('../utils/fichier.utils');
 
 // ── PDF ──────────────────────────────────────────────────────────────────────
 
@@ -24,9 +24,7 @@ const deverrouillerPDF = async (req, res, next) => {
     await decrypterPDFAvecQpdf(fichier.path, cheminSortie, motDePasse);
     supprimerFichier(fichier.path);
 
-    const nomOriginal = fichier.originalname.replace(/\.pdf$/i, '');
-
-    res.download(cheminSortie, `${nomOriginal}-deverrouille.pdf`, (err) => {
+    envoyerFichier(res, cheminSortie, (err) => {
       supprimerFichier(cheminSortie);
       if (err && !res.headersSent) next(err);
     });
@@ -74,9 +72,7 @@ const deverrouillerWord = async (req, res, next) => {
 
     supprimerFichier(fichier.path);
 
-    const nomOriginal = fichier.originalname.replace(/\.(docx?|doc)$/i, '');
-
-    res.download(cheminSortie, `${nomOriginal}-deverrouille${ext}`, (err) => {
+    envoyerFichier(res, cheminSortie, (err) => {
       supprimerFichier(cheminSortie);
       if (err && !res.headersSent) next(err);
     });
